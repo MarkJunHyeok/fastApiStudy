@@ -3,19 +3,30 @@ from typing import List
 from fastapi import Body, HTTPException, Depends, APIRouter
 
 from database.orm import ToDo
-from database.repository import ToDoRepository
+from database.repository import ToDoRepository, UserRepository
 from schema.request import CreateToDoRequest
 from schema.response import ToDoListSchema, ToDoSchema
+from security.security import get_access_token
+from service.user import UserService
 
 router = APIRouter(prefix='/todos')
 
 
 @router.get("", status_code=200)
 def get_todos_handler(
+        access_token: str = Depends(get_access_token),
         order: str | None = None,
-        todo_repo: ToDoRepository = Depends(ToDoRepository)
+        user_service: UserService = Depends(UserService),
+        user_repo: UserRepository = Depends(UserRepository)
 ) -> ToDoListSchema:
-    todos: List[ToDo] = todo_repo.get_todos()
+    username: str = user_service.decode_jwt(access_token=access_token)
+
+    user = user_repo.get_user_by_username(username)
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User Not Found")
+
+    todos: List[ToDo] = user.todos
 
     if order == "DESC":
         return ToDoListSchema(

@@ -14,3 +14,15 @@ class ToDoSchema(BaseModel):
 
 class ToDoListSchema(BaseModel):
     todos: List[ToDoSchema]
+
+
+class UserSchema(BaseModel):
+    id: int
+    username: str
+
+    class Config:
+        orm_mode = True
+
+
+class JWTResponse(BaseModel):
+    access_token: str
