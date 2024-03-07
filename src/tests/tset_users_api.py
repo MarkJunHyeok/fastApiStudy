@@ -1,5 +1,5 @@
-from database.orm import User
-from database.repository import UserRepository
+from domain.user import User
+from repository.user import UserRepository
 from service.user import UserService
 
 

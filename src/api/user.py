@@ -1,12 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException
 from starlette.background import BackgroundTasks
 
+from api.schema.user.user_create_otp_dto import CreateOTPRequest
+from api.schema.user.user_login_dto import LoginRequest, LoginResponse
+from api.schema.user.user_schema import UserSchema
+from api.schema.user.user_sign_up_dto import SignUpRequest
+from api.schema.user.user_verify_otp_dto import VerifyOTPRequest
 from cache import redis_client
-from database.orm import User
-from database.repository import UserRepository
-from schema.request import SignUpRequest, LoginRequest, CreateOTPRequest, VerifyOTPRequest
-from schema.response import UserSchema, JWTResponse
-from security.security import get_access_token
+from domain.user import User
+from repository.user import UserRepository
+from security.security import get_authenticated_user
 from service.user import UserService
 
 router = APIRouter(prefix="/users")
@@ -32,7 +35,7 @@ def user_log_in_handler(
         request: LoginRequest,
         user_service: UserService = Depends(),
         user_repo: UserRepository = Depends(),
-) -> JWTResponse:
+) -> LoginResponse:
     user = user_repo.get_user_by_username(username=request.username)
 
     if not user:
@@ -48,13 +51,13 @@ def user_log_in_handler(
 
     jwt = user_service.create_jwt(username=user.username)
 
-    return JWTResponse(access_token=jwt)
+    return LoginResponse(access_token=jwt)
 
 
 @router.post("/email/otp")
 def create_otp_handler(
         request: CreateOTPRequest,
-        _: str = Depends(get_access_token),
+        _: str = Depends(get_authenticated_user),
         user_service: UserService = Depends(),
 ):
     otp = user_service.create_otp()
@@ -69,7 +72,7 @@ def create_otp_handler(
 def verify_otp_handler(
         request: VerifyOTPRequest,
         background_tasks: BackgroundTasks,
-        access_token: str = Depends(get_access_token),
+        access_token: str = Depends(get_authenticated_user),
         user_service: UserService = Depends(),
         user_repo: UserRepository = Depends(),
 ):
